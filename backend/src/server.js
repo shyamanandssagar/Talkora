@@ -1,6 +1,13 @@
 require("dotenv").config()
 const express=require("express")
+
+const cookieParser = require("cookie-parser");
+
+
+
 const authRoutes=require("./routes/auth.route")
+const userRoutes=require("./routes/user.route")
+const chatRoutes=require("./routes/chat.route")
 const connectDB=require("./config/db")
 
 
@@ -10,12 +17,16 @@ connectDB()
 
 app.use(express.json())
 
+app.use(cookieParser());
+
 
 app.get("/",(req,res)=>{
   res.send("Hello World")
 })
 
 app.use("/api/auth",authRoutes)
+app.use("/api/users",userRoutes)
+app.use("/api/chat",chatRoutes)
 
 app.listen(PORT,()=>{
   console.log(`Server is running on port ${PORT}`);

@@ -2,15 +2,20 @@ const express=require("express")
 
 const router=express.Router()
 
-const {signupUser,loginUser,logoutUser}=require("../controllers/auth.controller")
+const {signupUser,loginUser,logoutUser,onboardUser}=require("../controllers/auth.controller")
 
 
-router.get("/signup",signupUser)
+const {protectRoute}=require("../middleware/auth.middleware")
+
+router.post("/signup",signupUser)
 
 
-router.get("/login",loginUser)
+router.post("/login",loginUser)
 
 
-router.get("/logout",logoutUser)
+router.post("/logout",logoutUser)
+
+
+router.post("/onboarding",protectRoute,onboardUser)
 
 module.exports=router
