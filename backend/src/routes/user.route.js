@@ -1,6 +1,6 @@
 const express=require("express");
 const { protectRoute } = require("../middleware/auth.middleware");
-const { getRecommendedUsers,getMyFriends,sendFriendRequest,acceptFriendRequest,getFriendRequests,getOutgoingFriendReqs } = require("../controllers/user.controller");
+const { getRecommendedUsers,getMyFriends,sendFriendRequest,acceptFriendRequest,rejectFriendRequest,getFriendRequests,getOutgoingFriendReqs } = require("../controllers/user.controller");
 
 const userRouter=express.Router();
 
@@ -21,6 +21,8 @@ userRouter.get("/friend-requests",getFriendRequests)
 
 
 userRouter.get("/outgoing-friend-requests",getOutgoingFriendReqs)
+
+userRouter.delete("/friend-request/:id/reject", rejectFriendRequest);
 
 
 module.exports=userRouter;

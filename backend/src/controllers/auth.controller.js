@@ -22,7 +22,7 @@ const signupUser = async (req, res) => {
         message: "User already exists"
       });
     }
-    const avatar = `https://api.multiavatar.com/${fullName}.svg`;
+    const avatar = `https://api.dicebear.com/9.x/avataaars/svg?seed=${fullName}`;
     
     const user = await User.create({
       fullName,
@@ -58,9 +58,9 @@ const signupUser = async (req, res) => {
 
     
     res.cookie("token", token, {
-      httpOnly: true,        // 🔒 prevents XSS
-      secure: process.env.NODE_ENV === "production", // only https in prod
-      sameSite: "Strict",    // CSRF protection
+      httpOnly: true,        
+      secure: process.env.NODE_ENV === "production", 
+      sameSite: "Strict",    
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
@@ -77,12 +77,33 @@ const signupUser = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({
+
+  //  HANDLE MONGOOSE VALIDATION ERROR
+  if (error.name === "ValidationError") {
+    const messages = Object.values(error.errors).map(
+      (val) => val.message
+    );
+
+    return res.status(400).json({
       success: false,
-      message: "Server error",
-      error: error.message
+      message: messages[0], // show first error
     });
   }
+
+  //  HANDLE DUPLICATE EMAIL
+  if (error.code === 11000) {
+    return res.status(400).json({
+      success: false,
+      message: "Email already exists",
+    });
+  }
+
+  
+  res.status(500).json({
+    success: false,
+    message: "Server error",
+  });
+}
 };
 
 
@@ -189,7 +210,8 @@ const onboardUser = async (req, res) => {
       bio,
       nativeLanguage,
       learningLanguage,
-      location
+      location,
+      profilePic 
     } = req.body;
 
     if (!fullName || !bio || !nativeLanguage || !learningLanguage || !location) {
@@ -205,7 +227,7 @@ const onboardUser = async (req, res) => {
       });
     }
 
-      const updatedUser = await User.findByIdAndUpdate(
+    const updatedUser = await User.findByIdAndUpdate(
       userId,
       {
         fullName,
@@ -213,6 +235,7 @@ const onboardUser = async (req, res) => {
         nativeLanguage,
         learningLanguage,
         location,
+        profilePic, 
         isOnboarded: true
       },
       {
@@ -221,7 +244,6 @@ const onboardUser = async (req, res) => {
       }
     );
 
-    
     if (!updatedUser) {
       return res.status(404).json({
         success: false,
@@ -229,26 +251,25 @@ const onboardUser = async (req, res) => {
       });
     }
 
-
-
     try {
-    await upsertStreamUser({
-      id: updatedUser._id.toString(),
-      name: updatedUser.fullName,
-      image: updatedUser.profilePic || "",
-    });
+      await upsertStreamUser({
+        id: updatedUser._id.toString(),
+        name: updatedUser.fullName,
+        image: updatedUser.profilePic || "",
+      });
 
-    console.log(`Stream user updated after onboarding for ${updatedUser.fullName}`);
+      console.log(`Stream user updated after onboarding for ${updatedUser.fullName}`);
     } catch (streamError) {
       console.log(
         "Error updating Stream user during onboarding:",
         streamError.message
       );
     }
+
     res.status(200).json({
       success: true,
       message: "Onboarding data received",
-      user:updatedUser
+      user: updatedUser
     });
 
   } catch (error) {
@@ -259,7 +280,6 @@ const onboardUser = async (req, res) => {
     });
   }
 };
-
 
 
 module.exports={signupUser,loginUser,logoutUser,onboardUser}

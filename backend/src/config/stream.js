@@ -16,7 +16,7 @@ const upsertStreamUser = async (userData) => {
     return userData;
   } catch (error) {
     console.error("Error creating Stream user:", error);
-    throw error; // important
+    throw error; 
   }
 };
 

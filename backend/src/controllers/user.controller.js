@@ -269,5 +269,45 @@ const getOutgoingFriendReqs = async (req, res) => {
 };
 
 
+const rejectFriendRequest = async (req, res) => {
+  try {
+    const myId = req.user._id;
+    const { id: requestId } = req.params;
 
-module.exports={getRecommendedUsers,getMyFriends,sendFriendRequest,acceptFriendRequest,getFriendRequests,getOutgoingFriendReqs}
+    const request = await FriendRequest.findById(requestId);
+
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: "Friend request not found",
+      });
+    }
+
+    // Only recipient can reject
+    if (!request.recipient.equals(myId)) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to reject this request",
+      });
+    }
+
+    // Delete request
+    await FriendRequest.findByIdAndDelete(requestId);
+
+    res.status(200).json({
+      success: true,
+      message: "Friend request rejected",
+    });
+
+  } catch (error) {
+    console.error("Error in rejectFriendRequest:", error.message);
+
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+
+module.exports={getRecommendedUsers,getMyFriends,sendFriendRequest,acceptFriendRequest,getFriendRequests,getOutgoingFriendReqs,rejectFriendRequest}
