@@ -1,9 +1,9 @@
-const express=require("express");
-const { protectRoute } = require("../middleware/auth.middleware");
-const getStreamToken = require("../controllers/chat.controller");
+import express from "express";
+import { protectRoute } from "../middleware/auth.middleware.js";
+import getStreamToken from "../controllers/chat.controller.js";
 
-const chatRouter=express.Router();
+const chatRouter = express.Router();
 
-chatRouter.get("/token",protectRoute,getStreamToken)
+chatRouter.get("/token", protectRoute, getStreamToken);
 
-module.exports=chatRouter
+export default chatRouter;

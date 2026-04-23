@@ -1,39 +1,37 @@
-const { upsertStreamUser } = require("../config/stream");
-const User = require("../models/User.model");
-const jwt = require("jsonwebtoken");
+import { upsertStreamUser } from "../config/stream.js";
+import User from "../models/User.model.js";
+import jwt from "jsonwebtoken";
 
-const signupUser = async (req, res) => {
+
+export const signupUser = async (req, res) => {
   try {
     const { fullName, email, password } = req.body;
 
-    
     if (!fullName || !email || !password) {
       return res.status(400).json({
         success: false,
-        message: "All fields are required"
+        message: "All fields are required",
       });
     }
 
-    
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(409).json({
         success: false,
-        message: "User already exists"
+        message: "User already exists",
       });
     }
+
     const avatar = `https://api.dicebear.com/9.x/avataaars/svg?seed=${fullName}`;
-    
+
     const user = await User.create({
       fullName,
       email,
       password,
-      profilePic:avatar
+      profilePic: avatar,
     });
 
-
-
-    //creating a user in GetStream
+    // Create Stream user
     try {
       await upsertStreamUser({
         id: user._id.toString(),
@@ -41,14 +39,11 @@ const signupUser = async (req, res) => {
         image: user.profilePic || undefined,
       });
 
-      console.log(` Stream user created: ${user.fullName}`);
-
+      console.log(`Stream user created: ${user.fullName}`);
     } catch (error) {
-      console.error(" Error creating Stream user:", error);
-      throw error; 
+      console.error("Error creating Stream user:", error);
+      throw error;
     }
-
-
 
     const token = jwt.sign(
       { userId: user._id },
@@ -56,15 +51,13 @@ const signupUser = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    
     res.cookie("token", token, {
-      httpOnly: true,        
-      secure: process.env.NODE_ENV === "production", 
-      sameSite: "Strict",    
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-   
     res.status(201).json({
       success: true,
       message: "User registered successfully",
@@ -72,60 +65,53 @@ const signupUser = async (req, res) => {
         id: user._id,
         fullName: user.fullName,
         email: user.email,
-        profilePic:avatar
-      }
+        profilePic: avatar,
+      },
     });
-
   } catch (error) {
+    // Mongoose validation error
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((val) => val.message);
 
-  //  HANDLE MONGOOSE VALIDATION ERROR
-  if (error.name === "ValidationError") {
-    const messages = Object.values(error.errors).map(
-      (val) => val.message
-    );
-
-    return res.status(400).json({
-      success: false,
-      message: messages[0], // show first error
-    });
-  }
-
-  //  HANDLE DUPLICATE EMAIL
-  if (error.code === 11000) {
-    return res.status(400).json({
-      success: false,
-      message: "Email already exists",
-    });
-  }
-
-  
-  res.status(500).json({
-    success: false,
-    message: "Server error",
-  });
-}
-};
-
-
-
-const loginUser = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    
-    if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: "Email and password are required"
+        message: messages[0],
       });
     }
 
-    
+    // Duplicate email
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: "Email already exists",
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+
+
+export const loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required",
+      });
+    }
+
     const user = await User.findOne({ email }).select("+password");
+
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials"
+        message: "Invalid credentials",
       });
     }
 
@@ -134,10 +120,9 @@ const loginUser = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials"
+        message: "Invalid credentials",
       });
     }
-
 
     const token = jwt.sign(
       { userId: user._id },
@@ -145,15 +130,13 @@ const loginUser = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-   
     res.status(200).json({
       success: true,
       message: "Login successful",
@@ -162,22 +145,20 @@ const loginUser = async (req, res) => {
         id: user._id,
         fullName: user.fullName,
         email: user.email,
-        profilePic:user.profilePic
-      }
+        profilePic: user.profilePic,
+      },
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
       message: "Server error",
-      error: error.message
+      error: error.message,
     });
   }
 };
 
 
-
-const logoutUser = async (req, res) => {
+export const logoutUser = async (req, res) => {
   try {
     res.clearCookie("token", {
       httpOnly: true,
@@ -187,21 +168,19 @@ const logoutUser = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Logged out successfully"
+      message: "Logged out successfully",
     });
-
   } catch (error) {
     return res.status(500).json({
       success: false,
       message: "Logout failed",
-      error: error.message
+      error: error.message,
     });
   }
 };
 
 
-
-const onboardUser = async (req, res) => {
+export const onboardUser = async (req, res) => {
   try {
     const userId = req.user._id;
 
@@ -211,7 +190,7 @@ const onboardUser = async (req, res) => {
       nativeLanguage,
       learningLanguage,
       location,
-      profilePic 
+      profilePic,
     } = req.body;
 
     if (!fullName || !bio || !nativeLanguage || !learningLanguage || !location) {
@@ -223,7 +202,7 @@ const onboardUser = async (req, res) => {
           !nativeLanguage && "nativeLanguage",
           !learningLanguage && "learningLanguage",
           !location && "location",
-        ].filter(Boolean) 
+        ].filter(Boolean),
       });
     }
 
@@ -235,19 +214,19 @@ const onboardUser = async (req, res) => {
         nativeLanguage,
         learningLanguage,
         location,
-        profilePic, 
-        isOnboarded: true
+        profilePic,
+        isOnboarded: true,
       },
       {
-        new: true,           
-        runValidators: true  
+        new: true,
+        runValidators: true,
       }
     );
 
     if (!updatedUser) {
       return res.status(404).json({
         success: false,
-        message: "User not found"
+        message: "User not found",
       });
     }
 
@@ -258,7 +237,9 @@ const onboardUser = async (req, res) => {
         image: updatedUser.profilePic || "",
       });
 
-      console.log(`Stream user updated after onboarding for ${updatedUser.fullName}`);
+      console.log(
+        `Stream user updated after onboarding for ${updatedUser.fullName}`
+      );
     } catch (streamError) {
       console.log(
         "Error updating Stream user during onboarding:",
@@ -269,17 +250,13 @@ const onboardUser = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Onboarding data received",
-      user: updatedUser
+      user: updatedUser,
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
       message: "Server error",
-      error: error.message
+      error: error.message,
     });
   }
 };
-
-
-module.exports={signupUser,loginUser,logoutUser,onboardUser}

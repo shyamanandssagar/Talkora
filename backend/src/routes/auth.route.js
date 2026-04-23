@@ -1,27 +1,25 @@
-const express=require("express")
+import express from "express";
+import {
+  signupUser,
+  loginUser,
+  logoutUser,
+  onboardUser,
+} from "../controllers/auth.controller.js";
+import { protectRoute } from "../middleware/auth.middleware.js";
+import User from "../models/User.model.js";
 
-const router=express.Router()
+const router = express.Router();
 
-const {signupUser,loginUser,logoutUser,onboardUser}=require("../controllers/auth.controller")
+router.post("/signup", signupUser);
 
+router.post("/login", loginUser);
 
-const {protectRoute}=require("../middleware/auth.middleware")
-const User = require("../models/User.model")
+router.post("/logout", logoutUser);
 
-router.post("/signup",signupUser)
+router.post("/onboarding", protectRoute, onboardUser);
 
+router.get("/me", protectRoute, (req, res) => {
+  res.status(200).json({ success: true, user: req.user });
+});
 
-router.post("/login",loginUser)
-
-
-router.post("/logout",logoutUser)
-
-
-router.post("/onboarding",protectRoute,onboardUser)
-
-
-router.get("/me",protectRoute,(req,res)=>{
-  res.status(200).json({success:true,user:req.user})
-})
-
-module.exports=router
+export default router;

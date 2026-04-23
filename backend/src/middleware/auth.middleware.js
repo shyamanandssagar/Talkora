@@ -1,11 +1,11 @@
-const jwt = require("jsonwebtoken");
-const User = require("../models/User.model");
+import jwt from "jsonwebtoken";
+import User from "../models/User.model.js";
 
-const protectRoute = async (req, res, next) => {
+export const protectRoute = async (req, res, next) => {
   try {
     let token;
 
-    //  Get token from cookies
+    // Get token from cookies
     if (req.cookies.token) {
       token = req.cookies.token;
     }
@@ -14,33 +14,29 @@ const protectRoute = async (req, res, next) => {
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: "Not authorized, no token"
+        message: "Not authorized, no token",
       });
     }
 
-  
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+    const user = await User.findById(decoded.userId);
 
-    const user = await User.findById(decoded.userId)
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "User not found"
+        message: "User not found",
       });
     }
 
     req.user = user;
 
     next();
-
   } catch (error) {
     return res.status(401).json({
       success: false,
       message: "Not authorized, token failed",
-      error: error.message
+      error: error.message,
     });
   }
 };
-
-module.exports = { protectRoute };

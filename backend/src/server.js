@@ -1,21 +1,22 @@
-require("dotenv").config()
-const express=require("express")
+import dotenv from "dotenv";
+dotenv.config();
 
-const cookieParser = require("cookie-parser");
+import express from "express";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import path from "path";
 
-const cors=require("cors");
+import authRoutes from "./routes/auth.route.js";
+import userRoutes from "./routes/user.route.js";
+import chatRoutes from "./routes/chat.route.js";
+import connectDB from "./config/db.js";
 
-const authRoutes=require("./routes/auth.route")
-const userRoutes=require("./routes/user.route")
-const chatRoutes=require("./routes/chat.route")
-const connectDB=require("./config/db")
+const app = express();
+const PORT = process.env.PORT || 5001;
 
+const __dirname = path.resolve();
 
-const app=express();
-const PORT=process.env.PORT || 5001
-connectDB()
-
-
+// Middleware
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -23,22 +24,38 @@ app.use(
   })
 );
 
-
-
-
-app.use(express.json())
-
+app.use(express.json());
 app.use(cookieParser());
 
 
-app.get("/",(req,res)=>{
-  res.send("Hello World")
-})
 
-app.use("/api/auth",authRoutes)
-app.use("/api/users",userRoutes)
-app.use("/api/chat",chatRoutes)
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/chat", chatRoutes);
 
-app.listen(PORT,()=>{
-  console.log(`Server is running on port ${PORT}`);
-})
+// Production setup
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "../frontend/dist")));
+
+  app.get("*", (req, res) => {
+    res.sendFile(
+      path.join(__dirname, "../frontend", "dist", "index.html")
+    );
+  });
+}
+
+
+const startServer = async () => {
+  try {
+    await connectDB();
+
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error.message);
+    process.exit(1);
+  }
+};
+
+startServer();
