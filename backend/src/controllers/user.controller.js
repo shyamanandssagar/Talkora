@@ -185,10 +185,7 @@ export const getFriendRequests = async (req, res) => {
     const incomingReqs = await FriendRequest.find({
       recipient: myId,
       status: "pending",
-    }).populate(
-      "sender",
-      "fullName profilePic nativeLanguage learningLanguage"
-    );
+    }).populate("sender", "fullName profilePic nativeLanguage learningLanguage");
 
     const acceptedReqs = await FriendRequest.find({
       sender: myId,
@@ -197,19 +194,13 @@ export const getFriendRequests = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      incomingReqs,
-      acceptedReqs,
+      // Filter out any requests where the user was deleted
+      incomingReqs: incomingReqs.filter((r) => r.sender !== null),
+      acceptedReqs: acceptedReqs.filter((r) => r.recipient !== null),
     });
   } catch (error) {
-    console.log(
-      "Error in getPendingFriendRequests controller",
-      error.message
-    );
-
-    res.status(500).json({
-      success: false,
-      message: "Internal Server Error",
-    });
+    console.log("Error in getFriendRequests controller", error.message);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
 
