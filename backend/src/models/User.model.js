@@ -21,17 +21,29 @@ const userSchema = new mongoose.Schema(
 
     password: {
       type: String,
-      required: [true, "Password is required"],
+      // Not required — Google OAuth users have no password
       minlength: [8, "Password must be at least 8 characters"],
       trim: true,
       validate: {
         validator: function (value) {
+          // Only validate if password is being set (not Google users)
+          if (!value) return true;
           return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).+$/.test(value);
         },
         message:
           "Password must contain uppercase, lowercase, number, and special character",
       },
       select: false,
+    },
+
+    googleId: {
+      type: String,
+      default: null,
+    },
+
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
     },
 
     bio: {
@@ -77,8 +89,7 @@ const userSchema = new mongoose.Schema(
 
 userSchema.pre("save", async function () {
   try {
-    if (!this.isModified("password")) return;
-
+    if (!this.isModified("password") || !this.password) return;
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
   } catch (error) {
