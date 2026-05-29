@@ -9,9 +9,12 @@ import CallPage from "./pages/CallPage.jsx";
 import ChatPage from "./pages/ChatPage.jsx";
 import OnboardingPage from "./pages/OnboardingPage.jsx";
 import FriendsPage from "./pages/FriendsPage.jsx";
+import VerifyEmailPage from "./pages/VerifyEmailPage.jsx";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage.jsx";
+import VerifyForgotOTPPage from "./pages/VerifyForgotOTPPage.jsx";
+import ResetPasswordPage from "./pages/ResetPasswordPage.jsx";
 
 import { Toaster } from "react-hot-toast";
-
 import PageLoader from "./components/PageLoader.jsx";
 import useAuthUser from "./hooks/useAuthUser.js";
 import Layout from "./components/Layout.jsx";
@@ -19,37 +22,85 @@ import { useThemeStore } from "./store/useThemeStore.js";
 
 const App = () => {
   const { isLoading, authUser } = useAuthUser();
-
-  const {theme}=useThemeStore()
+  const { theme } = useThemeStore();
 
   const isAuthenticated = Boolean(authUser);
   const isOnboarded = authUser?.isOnboarded;
 
   if (isLoading) return <PageLoader />;
 
-  console.log("DEBUG:", {
-    authUser,
-    isAuthenticated: Boolean(authUser),
-    isOnboarded: authUser?.isOnboarded,
-    isLoading,
-  });
   return (
     <div className="h-screen bg-base-100 text-base-content" data-theme={theme}>
       <Routes>
+
+        {/* ── Main App ── */}
         <Route
           path="/"
           element={
             isAuthenticated && isOnboarded ? (
-              <Layout showSidebar={true}>
-                <HomePage />
-              </Layout>
-              
+              <Layout showSidebar={true}><HomePage /></Layout>
             ) : (
               <Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />
             )
           }
         />
 
+        <Route
+          path="/friends"
+          element={
+            isAuthenticated && isOnboarded ? (
+              <Layout showSidebar={true}><FriendsPage /></Layout>
+            ) : (
+              <Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />
+            )
+          }
+        />
+
+        <Route
+          path="/notifications"
+          element={
+            isAuthenticated && isOnboarded ? (
+              <Layout showSidebar={true}><NotificationsPage /></Layout>
+            ) : (
+              <Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />
+            )
+          }
+        />
+
+        <Route
+          path="/chat/:id"
+          element={
+            isAuthenticated && isOnboarded ? (
+              <Layout showSidebar={true}><ChatPage /></Layout>
+            ) : (
+              <Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />
+            )
+          }
+        />
+
+        <Route
+          path="/call/:id"
+          element={
+            isAuthenticated && isOnboarded ? (
+              <CallPage />
+            ) : (
+              <Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />
+            )
+          }
+        />
+
+        <Route
+          path="/onboarding"
+          element={
+            isAuthenticated ? (
+              !isOnboarded ? <OnboardingPage /> : <Navigate to="/" />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+
+        {/* ── Auth Pages (unauthenticated only) ── */}
         <Route
           path="/signup"
           element={
@@ -72,67 +123,12 @@ const App = () => {
           }
         />
 
-        <Route
-          path="/notifications"
-          element={
-            isAuthenticated && isOnboarded ? (
-              <Layout showSidebar={true}>
-                <NotificationsPage />
-              </Layout>
-            ) : (
-              <Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />
-            )
-          }
-        />
+        {/*  OTP / Password Flow (accessible without auth)  */}
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/verify-forgot-otp" element={<VerifyForgotOTPPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-        <Route
-          path="/call/:id"
-          element={
-            isAuthenticated && isOnboarded ? (
-              <CallPage />
-            ) : (
-              <Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />
-            )
-          }
-        />
-        <Route
-          path="/friends"
-          element={
-            isAuthenticated && isOnboarded ? (
-              <Layout showSidebar={true}>
-                <FriendsPage />
-              </Layout>
-            ) : (
-              <Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />
-            )
-          }
-        />
-        <Route
-          path="/chat/:id"
-          element={
-            isAuthenticated && isOnboarded ? (
-              <Layout showSidebar={true}>
-                <ChatPage />
-              </Layout>
-            ) : (
-              <Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />
-            )
-          }
-        />
-        <Route
-          path="/onboarding"
-          element={
-            isAuthenticated ? (
-              !isOnboarded ? (
-                <OnboardingPage />
-              ) : (
-                <Navigate to="/" />
-              )
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
-        />
       </Routes>
 
       <Toaster />

@@ -1,22 +1,19 @@
 import { axiosInstance } from "./axios";
 
-
-export const signup=async (signupData) => {
+export const signup = async (signupData) => {
   const response = await axiosInstance.post("/auth/signup", signupData);
   return response.data;
-}
+};
 
-
-
-export const login=async (loginData) => {
+export const login = async (loginData) => {
   const response = await axiosInstance.post("/auth/login", loginData);
   return response.data;
-}
+};
 
-export const logout=async () => {
-  const response = await axiosInstance.post("/auth/logout", );
+export const logout = async () => {
+  const response = await axiosInstance.post("/auth/logout");
   return response.data;
-}
+};
 
 export const getAuthUser = async () => {
   try {
@@ -33,9 +30,38 @@ export const completeOnboarding = async (userData) => {
   return response.data;
 };
 
+//  Email Verification 
+export const verifyEmail = async ({ email, otp }) => {
+  const response = await axiosInstance.post("/auth/verify-email", { email, otp });
+  return response.data;
+};
 
+export const resendEmailOTP = async (email) => {
+  const response = await axiosInstance.post("/auth/resend-email-otp", { email });
+  return response.data;
+};
 
-//HomePage
+//  Forgot / Reset Password 
+export const forgotPassword = async (email) => {
+  const response = await axiosInstance.post("/auth/forgot-password", { email });
+  return response.data;
+};
+
+export const verifyForgotOTP = async ({ email, otp }) => {
+  const response = await axiosInstance.post("/auth/verify-forgot-otp", { email, otp });
+  return response.data;
+};
+
+export const resetPassword = async ({ email, resetToken, newPassword }) => {
+  const response = await axiosInstance.post("/auth/reset-password", {
+    email,
+    resetToken,
+    newPassword,
+  });
+  return response.data;
+};
+
+//  Friends / Users 
 export async function getUserFriends() {
   const response = await axiosInstance.get("/users/friends");
   return response.data;
@@ -45,8 +71,6 @@ export async function getRecommendedUsers() {
   const response = await axiosInstance.get("/users");
   return response.data;
 }
-
-
 
 export async function getOutgoingFriendReqs() {
   const response = await axiosInstance.get("/users/outgoing-friend-requests");
