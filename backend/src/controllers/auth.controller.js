@@ -64,21 +64,33 @@ export const signupUser = async (req, res) => {
     }
 
     // Send email verification OTP
-    const otp = generateOTP();
-    await OTP.deleteMany({ email, purpose: "verify_email" });
-    await OTP.create({ email, otp, purpose: "verify_email" });
-    await sendOTPEmail({
-      to: email,
-      subject: "Verify your Talkora email",
-      otp,
-      purpose: "verify",
-    });
-
-    res.status(201).json({
-      success: true,
-      message: "Account created. Please verify your email with the OTP sent.",
-      email,
-    });
+// Send email verification OTP
+try {
+  const otp = generateOTP();
+  await OTP.deleteMany({ email, purpose: "verify_email" });
+  await OTP.create({ email, otp, purpose: "verify_email" });
+  
+  console.log("Attempting to send OTP to:", email);
+  console.log("GMAIL_USER:", process.env.GMAIL_USER);
+  console.log("GMAIL_PASS SET:", !!process.env.GMAIL_APP_PASSWORD);
+  
+  await sendOTPEmail({
+    to: email,
+    subject: "Verify your Talkora email",
+    otp,
+    purpose: "verify",
+  });
+  
+  console.log("OTP sent successfully");
+} catch (emailError) {
+  console.error("EMAIL ERROR:", emailError.message);
+  // Still return success so user is created
+  return res.status(201).json({
+    success: true,
+    message: "Account created. OTP sending failed: " + emailError.message,
+    email,
+  });
+}
   } catch (error) {
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map((v) => v.message);
