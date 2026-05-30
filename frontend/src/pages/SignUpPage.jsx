@@ -14,13 +14,14 @@ const SignUpPage = () => {
   const handleSignup = (e) => {
     e.preventDefault();
     signUpMutation(signupData, {
-      onSuccess: (data) => {
-        // Redirect to email verification, pass email in state
-        navigate("/verify-email", { state: { email: data.email } });
+      onSuccess: () => {
+        navigate("/verify-email", { state: { email: signupData.email } });
+      },
+      onError: (err) => {
+        console.error("Signup error:", err);
       },
     });
   };
-
   const handleGoogleLogin = () => {
     window.location.href = `${BACKEND_URL}/api/auth/google`;
   };
