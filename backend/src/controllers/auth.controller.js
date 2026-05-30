@@ -5,11 +5,9 @@ import jwt from "jsonwebtoken";
 import { sendOTPEmail } from "../config/nodemailer.js";
 import crypto from "crypto";
 
-//  Helper: generate 6-digit OTP 
 const generateOTP = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 
-//  Helper: issue JWT cookie 
 const issueToken = (res, userId) => {
   const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
     expiresIn: "7d",
@@ -25,7 +23,6 @@ const issueToken = (res, userId) => {
   return token;
 };
 
-//  SIGNUP 
 export const signupUser = async (req, res) => {
   try {
     const { fullName, email, password } = req.body;
@@ -63,34 +60,25 @@ export const signupUser = async (req, res) => {
       console.error("Error creating Stream user:", error);
     }
 
-    // Send email verification OTP
-// Send email verification OTP
-try {
-  const otp = generateOTP();
-  await OTP.deleteMany({ email, purpose: "verify_email" });
-  await OTP.create({ email, otp, purpose: "verify_email" });
-  
-  console.log("Attempting to send OTP to:", email);
-  console.log("GMAIL_USER:", process.env.GMAIL_USER);
-  console.log("GMAIL_PASS SET:", !!process.env.GMAIL_APP_PASSWORD);
-  
-  await sendOTPEmail({
-    to: email,
-    subject: "Verify your Talkora email",
-    otp,
-    purpose: "verify",
-  });
-  
-  console.log("OTP sent successfully");
-} catch (emailError) {
-  console.error("EMAIL ERROR:", emailError.message);
-  // Still return success so user is created
-  return res.status(201).json({
-    success: true,
-    message: "Account created. OTP sending failed: " + emailError.message,
-    email,
-  });
-}
+    try {
+      const otp = generateOTP();
+      await OTP.deleteMany({ email, purpose: "verify_email" });
+      await OTP.create({ email, otp, purpose: "verify_email" });
+      await sendOTPEmail({
+        to: email,
+        subject: "Verify your Talkora email",
+        otp,
+        purpose: "verify",
+      });
+    } catch (emailError) {
+      console.error("EMAIL ERROR:", emailError.message);
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: "Account created. Please verify your email with the OTP sent.",
+      email,
+    });
   } catch (error) {
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map((v) => v.message);
@@ -105,7 +93,6 @@ try {
   }
 };
 
-//  VERIFY EMAIL OTP 
 export const verifyEmailOTP = async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -119,34 +106,34 @@ export const verifyEmailOTP = async (req, res) => {
     const record = await OTP.findOne({ email, purpose: "verify_email" });
 
     if (!record) {
-      return res
-        .status(400)
-        .json({ success: false, message: "OTP not found or expired. Please request a new one." });
+      return res.status(400).json({
+        success: false,
+        message: "OTP not found or expired. Please request a new one.",
+      });
     }
 
     if (record.expiresAt < new Date()) {
       await OTP.deleteOne({ _id: record._id });
-      return res
-        .status(400)
-        .json({ success: false, message: "OTP expired. Please request a new one." });
+      return res.status(400).json({
+        success: false,
+        message: "OTP expired. Please request a new one.",
+      });
     }
 
     if (record.attempts >= 5) {
       await OTP.deleteOne({ _id: record._id });
-      return res
-        .status(429)
-        .json({ success: false, message: "Too many attempts. Please request a new OTP." });
+      return res.status(429).json({
+        success: false,
+        message: "Too many attempts. Please request a new OTP.",
+      });
     }
 
     if (record.otp !== otp) {
       record.attempts += 1;
       await record.save();
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid OTP" });
+      return res.status(400).json({ success: false, message: "Invalid OTP" });
     }
 
-    // OTP correct — verify user
     await OTP.deleteOne({ _id: record._id });
 
     const user = await User.findOneAndUpdate(
@@ -181,7 +168,6 @@ export const verifyEmailOTP = async (req, res) => {
   }
 };
 
-//  RESEND EMAIL VERIFICATION OTP 
 export const resendEmailOTP = async (req, res) => {
   try {
     const { email } = req.body;
@@ -217,7 +203,6 @@ export const resendEmailOTP = async (req, res) => {
   }
 };
 
-//  LOGIN 
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -236,7 +221,6 @@ export const loginUser = async (req, res) => {
         .json({ success: false, message: "Invalid credentials" });
     }
 
-    // Google-only user trying to log in with password
     if (!user.password) {
       return res.status(400).json({
         success: false,
@@ -251,9 +235,7 @@ export const loginUser = async (req, res) => {
         .json({ success: false, message: "Invalid credentials" });
     }
 
-    // Block unverified users
     if (!user.isEmailVerified) {
-      // Resend OTP 
       const otp = generateOTP();
       await OTP.deleteMany({ email, purpose: "verify_email" });
       await OTP.create({ email, otp, purpose: "verify_email" });
@@ -291,7 +273,6 @@ export const loginUser = async (req, res) => {
   }
 };
 
-//  LOGOUT 
 export const logoutUser = async (req, res) => {
   try {
     res.clearCookie("token", {
@@ -310,7 +291,6 @@ export const logoutUser = async (req, res) => {
   }
 };
 
-//  ONBOARDING 
 export const onboardUser = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -364,14 +344,12 @@ export const onboardUser = async (req, res) => {
   }
 };
 
-//  GOOGLE OAUTH CALLBACK 
 export const googleCallback = async (req, res) => {
   try {
-    const user = req.user; // populated by Passport
+    const user = req.user;
 
     issueToken(res, user._id);
 
-    // Redirect to frontend
     const frontendURL =
       process.env.NODE_ENV === "production"
         ? ""
@@ -389,7 +367,6 @@ export const googleCallback = async (req, res) => {
   }
 };
 
-//  FORGOT PASSWORD — SEND OTP 
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -401,7 +378,6 @@ export const forgotPassword = async (req, res) => {
     }
 
     const user = await User.findOne({ email });
-    // Always respond 200 to prevent email enumeration
     if (!user || !user.password) {
       return res.status(200).json({
         success: true,
@@ -430,7 +406,6 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
-//  FORGOT PASSWORD — VERIFY OTP 
 export const verifyForgotOTP = async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -451,30 +426,29 @@ export const verifyForgotOTP = async (req, res) => {
 
     if (record.expiresAt < new Date()) {
       await OTP.deleteOne({ _id: record._id });
-      return res
-        .status(400)
-        .json({ success: false, message: "OTP expired. Please request a new one." });
+      return res.status(400).json({
+        success: false,
+        message: "OTP expired. Please request a new one.",
+      });
     }
 
     if (record.attempts >= 5) {
       await OTP.deleteOne({ _id: record._id });
-      return res
-        .status(429)
-        .json({ success: false, message: "Too many attempts. Please request a new OTP." });
+      return res.status(429).json({
+        success: false,
+        message: "Too many attempts. Please request a new OTP.",
+      });
     }
 
     if (record.otp !== otp) {
       record.attempts += 1;
       await record.save();
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid OTP" });
+      return res.status(400).json({ success: false, message: "Invalid OTP" });
     }
 
-    // Issue a short-lived reset token
     const resetToken = crypto.randomBytes(32).toString("hex");
-    record.otp = resetToken; // reuse field to store reset token
-    record.expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 min
+    record.otp = resetToken;
+    record.expiresAt = new Date(Date.now() + 15 * 60 * 1000);
     await record.save();
 
     res.status(200).json({
@@ -489,7 +463,6 @@ export const verifyForgotOTP = async (req, res) => {
   }
 };
 
-//  RESET PASSWORD 
 export const resetPassword = async (req, res) => {
   try {
     const { email, resetToken, newPassword } = req.body;
@@ -516,7 +489,7 @@ export const resetPassword = async (req, res) => {
     }
 
     user.password = newPassword;
-    await user.save(); // triggers pre-save hash
+    await user.save();
 
     await OTP.deleteOne({ _id: record._id });
 
